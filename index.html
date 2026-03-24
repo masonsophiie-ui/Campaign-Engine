@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Campaign Engine</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #080808; --surface: #111; --border: #1e1e1e;
+    --accent: #E8FF45; --text: #F5F5F0; --muted: #555; --mid: #999;
+  }
+  body { background: var(--bg); font-family: 'Syne', sans-serif; color: var(--text); min-height: 100vh; }
+  input, textarea, button, select { font-family: 'Syne', sans-serif; }
+  input::placeholder, textarea::placeholder { color: #2a2a2a; }
+  textarea { resize: none; }
+
+  /* Header */
+  .header { border-bottom: 1px solid var(--border); padding: 20px 36px; display: flex; align-items: center; justify-content: space-between; }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-mark { width: 28px; height: 28px; background: var(--accent); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; color: #000; flex-shrink: 0; }
+  .logo-text { font-weight: 700; letter-spacing: 0.15em; font-size: 12px; text-transform: uppercase; }
+  .header-tag { font-family: 'DM Mono', monospace; font-size: 10px; color: #333; letter-spacing: 0.1em; text-transform: uppercase; }
+
+  /* Layout */
+  .layout { display: grid; grid-template-columns: 340px 1fr; min-height: calc(100vh - 69px); }
+
+  /* Sidebar */
+  .sidebar { border-right: 1px solid var(--border); padding: 32px 28px; display: flex; flex-direction: column; gap: 22px; overflow-y: auto; }
+  .headline { font-size: 24px; font-weight: 800; line-height: 1.15; letter-spacing: -0.02em; }
+  .headline span { color: var(--accent); }
+  .field { display: flex; flex-direction: column; gap: 7px; }
+  .label { font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  .input, .textarea {
+    background: var(--surface); border: 1px solid var(--border); color: var(--text);
+    font-size: 13px; padding: 10px 13px; outline: none; border-radius: 2px; width: 100%;
+    transition: border-color 0.2s;
+  }
+  .input:focus, .textarea:focus { border-color: var(--accent); }
+  .textarea { height: 70px; }
+  .tone-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  .tone-btn {
+    padding: 9px 6px; background: var(--surface); border: 1px solid var(--border);
+    color: #666; font-size: 11px; font-weight: 600; cursor: pointer;
+    border-radius: 2px; transition: all 0.15s; text-align: center;
+  }
+  .tone-btn:hover { border-color: #444; color: var(--text); }
+  .tone-btn.active { background: var(--accent); border-color: var(--accent); color: #000; }
+  .gen-btn {
+    padding: 16px; background: var(--accent); color: #000; border: none;
+    font-size: 13px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
+    cursor: pointer; border-radius: 2px; transition: all 0.2s; margin-top: 6px;
+  }
+  .gen-btn:hover:not(:disabled) { background: #d4eb00; }
+  .gen-btn:disabled { background: #1a1a1a; color: #333; cursor: not-allowed; }
+  .gen-btn.loading { background: #111; color: var(--accent); border: 1px solid var(--accent); }
+
+  /* Output */
+  .output { padding: 32px 40px; overflow-y: auto; }
+  .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 60vh; gap: 14px; color: #2a2a2a; }
+  .empty-icon { font-size: 40px; }
+  .empty-text { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; }
+  .result-meta { font-family: 'DM Mono', monospace; font-size: 10px; color: #333; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 22px; }
+  .results { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .card { background: var(--surface); border: 1px solid var(--border); padding: 20px; border-radius: 2px; }
+  .card.full { grid-column: 1 / -1; background: #0d0d05; border-color: #2a2a12; }
+  .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 13px; }
+  .card-label { font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  .copy-btn {
+    background: transparent; border: 1px solid #222; color: #555;
+    font-family: 'DM Mono', monospace; font-size: 10px; padding: 3px 9px;
+    cursor: pointer; border-radius: 2px; transition: all 0.15s;
+  }
+  .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .copy-btn.done { border-color: #44ff88; color: #44ff88; }
+  .tagline-text { font-size: 28px; font-weight: 800; color: var(--accent); line-height: 1.1; letter-spacing: -0.02em; }
+  .mono { font-family: 'DM Mono', monospace; font-size: 12px; line-height: 1.75; color: #b0b0a8; white-space: pre-wrap; }
+  .email-list { display: flex; flex-direction: column; gap: 8px; }
+  .email-item { display: flex; gap: 10px; padding: 9px 12px; background: #0e0e0e; border: 1px solid var(--border); border-radius: 2px; }
+  .email-num { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--accent); flex-shrink: 0; }
+  .email-text { font-family: 'DM Mono', monospace; font-size: 12px; color: #b0b0a8; }
+  .error-box { background: #1a0808; border: 1px solid #3a1111; color: #ff8888; padding: 13px 17px; font-family: 'DM Mono', monospace; font-size: 12px; border-radius: 2px; margin-bottom: 20px; }
+  .skeleton { background: var(--surface); border: 1px solid var(--border); border-radius: 2px; animation: pulse 1.4s ease infinite; }
+  .skeleton.full { grid-column: 1/-1; height: 100px; }
+  .skeleton.half { height: 170px; }
+  @keyframes pulse { 0%,100%{opacity:0.3} 50%{opacity:0.7} }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  .fade-in { animation: fadeIn 0.4s ease forwards; }
+  .footer { font-family: 'DM Mono', monospace; font-size: 10px; color: #1e1e1e; text-align: center; margin-top: 28px; letter-spacing: 0.1em; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-mark">C</div>
+    <div class="logo-text">Campaign Engine</div>
+  </div>
+  <div class="header-tag">Powered by Claude AI</div>
+</div>
+
+<div class="layout">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="headline">Brief in.<br><span>Campaign out.</span></div>
+
+    <div class="field">
+      <label class="label">Brand Name</label>
+      <input class="input" id="brand" placeholder="e.g. Oatly, Revolut, Ryanair" />
+    </div>
+    <div class="field">
+      <label class="label">Product / Service</label>
+      <textarea class="textarea" id="product" placeholder="What are you promoting? Be specific."></textarea>
+    </div>
+    <div class="field">
+      <label class="label">Target Audience</label>
+      <input class="input" id="audience" placeholder="e.g. Women 25–35, Dublin, eco-conscious" />
+    </div>
+    <div class="field">
+      <label class="label">Campaign Goal</label>
+      <input class="input" id="goal" placeholder="e.g. Drive sign-ups, raise awareness" />
+    </div>
+
+    <div class="field">
+      <label class="label">Tone</label>
+      <div class="tone-grid" id="toneGrid">
+        <button class="tone-btn active" data-tone="Bold & Confident">Bold & Confident</button>
+        <button class="tone-btn" data-tone="Playful & Fun">Playful & Fun</button>
+        <button class="tone-btn" data-tone="Luxury & Aspirational">Luxury & Aspirational</button>
+        <button class="tone-btn" data-tone="Urgent & Direct">Urgent & Direct</button>
+        <button class="tone-btn" data-tone="Warm & Authentic">Warm & Authentic</button>
+        <button class="tone-btn" data-tone="Edgy & Disruptive">Edgy & Disruptive</button>
+      </div>
+    </div>
+
+    <button class="gen-btn" id="genBtn" onclick="generate()">Generate Campaign →</button>
+  </aside>
+
+  <!-- Output -->
+  <main class="output" id="output">
+    <div class="empty">
+      <div class="empty-icon">◈</div>
+      <div class="empty-text">Fill the brief → generate campaign</div>
+    </div>
+  </main>
+</div>
+
+<script>
+  let selectedTone = "Bold & Confident";
+
+  // Tone selection
+  document.getElementById("toneGrid").addEventListener("click", e => {
+    const btn = e.target.closest(".tone-btn");
+    if (!btn) return;
+    document.querySelectorAll(".tone-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    selectedTone = btn.dataset.tone;
+  });
+
+  function getValues() {
+    return {
+      brand: document.getElementById("brand").value.trim(),
+      product: document.getElementById("product").value.trim(),
+      audience: document.getElementById("audience").value.trim(),
+      goal: document.getElementById("goal").value.trim(),
+    };
+  }
+
+  function setLoading(on) {
+    const btn = document.getElementById("genBtn");
+    btn.disabled = on;
+    btn.className = on ? "gen-btn loading" : "gen-btn";
+    btn.textContent = on ? "Generating..." : "Generate Campaign →";
+  }
+
+  function showSkeletons() {
+    document.getElementById("output").innerHTML = `
+      <div class="results">
+        <div class="skeleton full"></div>
+        <div class="skeleton half"></div>
+        <div class="skeleton half"></div>
+        <div class="skeleton half"></div>
+        <div class="skeleton half"></div>
+      </div>`;
+  }
+
+  function copyText(text, btnId) {
+    navigator.clipboard.writeText(text);
+    const btn = document.getElementById(btnId);
+    btn.textContent = "Copied!";
+    btn.classList.add("done");
+    setTimeout(() => { btn.textContent = btnId === "copyEmails" ? "Copy All" : "Copy"; btn.classList.remove("done"); }, 2000);
+  }
+
+  async function generate() {
+    const v = getValues();
+    if (!v.brand || !v.product || !v.audience || !v.goal) {
+      alert("Please fill in all fields.");
+      return;
+    }
+
+    setLoading(true);
+    showSkeletons();
+
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1000,
+          system: `You are a senior creative copywriter at a world-class marketing agency. Return ONLY valid JSON with no markdown fences or commentary. Use this exact structure:
+{
+  "campaign_tagline": "One punchy tagline, max 8 words",
+  "instagram_caption": "Full Instagram caption with hook, 2-3 body sentences, CTA, and 5 hashtags on a new line",
+  "linkedin_post": "LinkedIn post with bold opener, 2-3 value sentences, soft CTA",
+  "email_subject": ["Curiosity-driven subject", "Benefit-driven subject", "Urgency-driven subject"],
+  "ad_headline": "Paid ad headline max 10 words\\nCTA: short CTA text"
+}`,
+          messages: [{
+            role: "user",
+            content: `Brand: ${v.brand}\nProduct/Service: ${v.product}\nTarget Audience: ${v.audience}\nCampaign Goal: ${v.goal}\nTone: ${selectedTone}`
+          }]
+        })
+      });
+
+      const data = await res.json();
+      const raw = data.content[0].text.replace(/```json|```/g, "").trim();
+      const out = JSON.parse(raw);
+      renderOutput(out, v.brand);
+    } catch (err) {
+      document.getElementById("output").innerHTML = `<div class="error-box">⚠ Generation failed — please try again.</div>`;
+    }
+
+    setLoading(false);
+  }
+
+  function renderOutput(out, brand) {
+    const emails = (out.email_subject || []).map((s, i) => `
+      <div class="email-item">
+        <span class="email-num">0${i+1}</span>
+        <span class="email-text">${esc(s)}</span>
+      </div>`).join("");
+
+    document.getElementById("output").innerHTML = `
+      <div class="fade-in">
+        <div class="result-meta">${esc(brand)} — ${esc(selectedTone)}</div>
+        <div class="results">
+
+          <div class="card full">
+            <div class="card-header">
+              <span class="card-label">⚡ The Big Idea</span>
+              <button class="copy-btn" id="copyTag" onclick="copyText(${JSON.stringify(out.campaign_tagline)}, 'copyTag')">Copy</button>
+            </div>
+            <div class="tagline-text">${esc(out.campaign_tagline)}</div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <span class="card-label">◉ Instagram</span>
+              <button class="copy-btn" id="copyIg" onclick="copyText(${JSON.stringify(out.instagram_caption)}, 'copyIg')">Copy</button>
+            </div>
+            <div class="mono">${esc(out.instagram_caption)}</div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <span class="card-label">▣ LinkedIn</span>
+              <button class="copy-btn" id="copyLi" onclick="copyText(${JSON.stringify(out.linkedin_post)}, 'copyLi')">Copy</button>
+            </div>
+            <div class="mono">${esc(out.linkedin_post)}</div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <span class="card-label">→ Email Subjects</span>
+              <button class="copy-btn" id="copyEmails" onclick="copyText(${JSON.stringify((out.email_subject||[]).join('\n'))}, 'copyEmails')">Copy All</button>
+            </div>
+            <div class="email-list">${emails}</div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <span class="card-label">◈ Paid Ad</span>
+              <button class="copy-btn" id="copyAd" onclick="copyText(${JSON.stringify(out.ad_headline)}, 'copyAd')">Copy</button>
+            </div>
+            <div class="mono">${esc(out.ad_headline)}</div>
+          </div>
+
+        </div>
+        <div class="footer">Built with Claude AI · Anthropic API</div>
+      </div>`;
+  }
+
+  function esc(str) {
+    return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/\n/g,"<br>");
+  }
+</script>
+</body>
+</html>
